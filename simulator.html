@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PageRank Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg:        #f4f6f9;
+  --bg2:       #eef1f6;
+  --surface:   #ffffff;
+  --surface2:  #f8fafc;
+  --border:    #d1d9e6;
+  --border2:   #b8c4d6;
+  --blue:      #1a56db;
+  --blue-lt:   #e8f0fd;
+  --indigo:    #4338ca;
+  --green:     #059669;
+  --green-lt:  #d1fae5;
+  --amber:     #d97706;
+  --amber-lt:  #fef3c7;
+  --red:       #dc2626;
+  --red-lt:    #fee2e2;
+  --text:      #111827;
+  --text2:     #374151;
+  --text3:     #6b7280;
+  --text4:     #9ca3af;
+  --shadow:    0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+  --radius: 8px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body {
+  font-family:'IBM Plex Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+/* HEADER */
+header {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
+  height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+  box-shadow:var(--shadow);
+  z-index:100;
+}
+.hdr-left{display:flex;align-items:center;gap:14px;}
+.app-icon{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,#1a56db,#4338ca);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:17px;
+  box-shadow:0 2px 8px rgba(26,86,219,0.3);
+}
+.app-title{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.3px;}
+.app-sub{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-top:1px;}
+.hdr-chips{display:flex;gap:8px;align-items:center;}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;
+  font-size:11px;font-weight:600;
+  font-family:'IBM Plex Mono',monospace;
+  letter-spacing:.5px;text-transform:uppercase;border:1px solid;
+}
+.chip-blue {background:var(--blue-lt);color:var(--blue);border-color:#bfdbfe;}
+.chip-green{background:var(--green-lt);color:var(--green);border-color:#a7f3d0;}
+.chip-amber{background:var(--amber-lt);color:var(--amber);border-color:#fde68a;}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+/* LAYOUT */
+.workspace{
+  display:grid;
+  grid-template-columns:295px 1fr 315px;
+  flex:1;overflow:hidden;min-height:0;
+}
+
+/* SIDEBARS */
+.sidebar{
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-r{border-right:none;border-left:1px solid var(--border);}
+.sb-hdr{
+  padding:13px 16px 11px;border-bottom:1px solid var(--border);
+  background:var(--surface2);flex-shrink:0;
+}
+.sb-title{
+  font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1.5px;color:var(--text3);
+  display:flex;align-items:center;gap:7px;
+}
+.sb-title-bar{width:3px;height:13px;border-radius:2px;background:var(--blue);}
+.sb-body{
+  padding:14px 15px;overflow-y:auto;flex:1;
+  display:flex;flex-direction:column;gap:13px;
+}
+
+/* FORM */
+.fl{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.8px;}
+input[type=text],input[type=number],select{
+  width:100%;padding:8px 11px;
+  border:1px solid var(--border);border-radius:var(--radius);
+  font-size:13px;font-family:'IBM Plex Sans',sans-serif;
+  color:var(--text);background:var(--surface);
+  transition:border-color .15s,box-shadow .15s;outline:none;
+}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,0.12);}
+select option{background:var(--surface);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* BUTTONS */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 14px;border:none;border-radius:var(--radius);
+  font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.btn-blue  {background:var(--blue);color:#fff;box-shadow:0 1px 4px rgba(26,86,219,.35);}
+.btn-blue:hover  {background:#1649c0;}
+.btn-indigo{background:var(--indigo);color:#fff;box-shadow:0 1px 4px rgba(67,56,202,.35);}
+.btn-indigo:hover{background:#3730a3;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--bg);border-color:var(--border2);}
+.btn-red{background:transparent;color:var(--red);border:1px solid #fca5a5;}
+.btn-red:hover{background:var(--red-lt);}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+.btn-full{width:100%;}
+.btn-icon{width:28px;height:28px;padding:0;border-radius:6px;font-size:13px;}
+
+/* ITEM CARDS */
+.item-list{display:flex;flex-direction:column;gap:5px;}
+.item-card{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--radius);
+  transition:border-color .15s;
+}
+.item-card:hover{border-color:var(--border2);}
+.item-name{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;}
+.item-sub{font-size:11px;color:var(--text4);margin-top:2px;}
+.sink-tag{
+  display:inline-block;margin-left:6px;
+  padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;
+  background:var(--amber-lt);color:var(--amber);border:1px solid #fde68a;
+  font-family:'IBM Plex Mono',monospace;text-transform:uppercase;
+  letter-spacing:.5px;vertical-align:middle;
+}
+.edge-card{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 10px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--radius);
+}
+.edge-label{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.npill{padding:2px 7px;border-radius:4px;font-weight:600;font-size:12px;}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:1px 0;}
+
+/* SECTION HDR */
+.sec{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.sec-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);}
+.sec-cnt{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text4);
+  background:var(--bg2);padding:1px 7px;border-radius:10px;border:1px solid var(--border);
+}
+
+/* EMPTY */
+.empty{
+  text-align:center;color:var(--text4);font-size:12px;
+  padding:14px;border:1px dashed var(--border);
+  border-radius:var(--radius);background:var(--bg2);
+}
+
+/* TOGGLES */
+.tog-row{display:flex;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
+.tog{
+  flex:1;padding:8px 6px;font-size:12px;font-weight:600;cursor:pointer;
+  background:var(--surface2);color:var(--text3);border:none;
+  font-family:'IBM Plex Sans',sans-serif;transition:all .15s;text-align:center;
+}
+.tog+.tog{border-left:1px solid var(--border);}
+.tog.on-blue  {background:var(--blue);color:#fff;}
+.tog.on-amber {background:var(--amber);color:#fff;}
+.tog.on-green {background:var(--green);color:#fff;}
+
+/* CANVAS */
+.canvas-wrap{display:flex;flex-direction:column;background:var(--bg2);overflow:hidden;}
+.ctb{
+  padding:9px 15px;border-bottom:1px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.tg{display:flex;gap:5px;align-items:center;}
+.sep{width:1px;height:20px;background:var(--border);margin:0 3px;}
+canvas#gc{flex:1;cursor:grab;display:block;}
+canvas#gc:active{cursor:grabbing;}
+.cfooter{
+  padding:5px 15px;background:var(--surface);border-top:1px solid var(--border);
+  display:flex;gap:18px;align-items:center;font-size:11px;color:var(--text4);
+  font-family:'IBM Plex Mono',monospace;flex-shrink:0;
+}
+.cfooter strong{color:var(--text2);}
+
+/* RESULTS */
+.pr-row{
+  display:flex;flex-direction:column;gap:4px;
+  padding:9px 11px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--radius);
+  margin-bottom:5px;transition:border-color .15s;cursor:default;
+}
+.pr-row:hover{border-color:var(--border2);}
+.pr-top{display:flex;align-items:center;justify-content:space-between;}
+.pr-node{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;}
+.pr-val {font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;}
+.pr-track{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.pr-fill {height:100%;border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.pr-meta{font-size:10px;color:var(--text4);text-align:right;font-family:'IBM Plex Mono',monospace;}
+
+/* CONV BOX */
+.conv-box{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--radius);margin-bottom:10px;border:1px solid;
+}
+.conv-box.ok  {background:var(--green-lt);border-color:#a7f3d0;color:var(--green);}
+.conv-box.warn{background:var(--amber-lt);border-color:#fde68a;color:var(--amber);}
+.conv-msg{font-size:12px;font-weight:600;}
+.conv-sub{font-size:11px;opacity:.75;font-family:'IBM Plex Mono',monospace;}
+
+/* ITER SLIDER */
+.iter-ctrl{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 11px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;
+}
+.iter-ctrl label{font-size:11px;color:var(--text3);white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.8px;}
+input[type=range]{
+  flex:1;-webkit-appearance:none;appearance:none;
+  height:4px;background:var(--border);border-radius:2px;
+  border:none;padding:0;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;
+  background:var(--blue);border-radius:50%;
+  border:2px solid #fff;box-shadow:0 1px 4px rgba(26,86,219,.4);
+}
+.iter-num{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--blue);min-width:28px;text-align:right;}
+
+/* CHART */
+.chart-box{
+  padding:11px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);margin-bottom:10px;
+}
+.chart-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:7px;}
+canvas#cc{width:100%;display:block;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);}
+table.itbl{width:100%;border-collapse:collapse;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+table.itbl th{padding:6px 8px;background:var(--surface2);border-bottom:1px solid var(--border);color:var(--text3);text-align:right;font-weight:600;white-space:nowrap;}
+table.itbl th:first-child{text-align:left;}
+table.itbl td{padding:5px 8px;border-bottom:1px solid #f0f0f0;text-align:right;color:var(--text2);}
+table.itbl td:first-child{text-align:left;color:var(--text3);}
+table.itbl tr:last-child td{border-bottom:none;}
+table.itbl tr.hl td{background:#eff6ff;font-weight:700;color:var(--blue);}
+table.itbl tr[data-i]{cursor:pointer;}
+table.itbl tr[data-i]:hover td{background:#f5f8ff;}
+
+/* STATUS BAR */
+.statusbar{
+  height:28px;padding:0 18px;
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:18px;
+  font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text4);
+  flex-shrink:0;
+}
+.sb-dot{width:6px;height:6px;border-radius:50%;}
+
+/* SAMPLES */
+.sample-grid{display:flex;flex-direction:column;gap:4px;}
+.sample-btn{
+  padding:7px 10px;border-radius:var(--radius);
+  font-size:12px;cursor:pointer;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text2);
+  transition:all .15s;text-align:left;
+  font-family:'IBM Plex Sans',sans-serif;font-weight:500;
+}
+.sample-btn:hover{background:var(--blue-lt);color:var(--blue);border-color:#bfdbfe;}
+
+/* TOAST */
+#toast{
+  position:fixed;bottom:38px;left:50%;
+  transform:translateX(-50%) translateY(70px);
+  background:var(--text);color:#fff;
+  padding:9px 20px;border-radius:var(--radius);
+  font-size:13px;font-weight:500;
+  box-shadow:var(--shadow-lg);transition:transform .25s ease;
+  z-index:9999;pointer-events:none;
+}
+#toast.show{transform:translateX(-50%) translateY(0);}
+#toast.ok {background:var(--green);}
+#toast.err{background:var(--red);}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="hdr-left">
+    <div class="app-icon">🕸</div>
+    <div>
+      <div class="app-title">PageRank Simulator</div>
+      <div class="app-sub">Graph Analysis Engine · v2.0</div>
+    </div>
+  </div>
+  <div class="hdr-chips">
+    <span class="chip chip-blue" id="chipMode"><span class="chip-dot"></span>WITH DAMPING</span>
+    <span class="chip chip-green" id="chipDang"><span class="chip-dot"></span>DANGLING: ON</span>
+    <span class="chip chip-amber" id="chipStatus">READY</span>
+  </div>
+</header>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+<!-- LEFT PANEL -->
+<div class="sidebar">
+  <div class="sb-hdr">
+    <div class="sb-title"><div class="sb-title-bar"></div>Graph Builder</div>
+  </div>
+  <div class="sb-body">
+
+    <div>
+      <div class="sec"><span class="sec-lbl">Add Node</span></div>
+      <div style="display:flex;gap:7px;">
+        <input type="text" id="nodeInput" placeholder="e.g. p1, A, Page1" maxlength="12" style="flex:1"/>
+        <button class="btn btn-blue btn-sm" onclick="addNode()" style="padding:6px 13px;white-space:nowrap;">+ Add</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec"><span class="sec-lbl">Nodes</span><span class="sec-cnt" id="nodeCount">0</span></div>
+      <div class="item-list" id="nodeList"><div class="empty">No nodes yet</div></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="sec"><span class="sec-lbl">Add Directed Link</span></div>
+      <div class="row2" style="margin-bottom:7px;">
+        <div><label class="fl">From</label><select id="eFrom"><option value="">— From —</option></select></div>
+        <div><label class="fl">To</label><select id="eTo"><option value="">— To —</option></select></div>
+      </div>
+      <button class="btn btn-ghost btn-full btn-sm" onclick="addEdge()">→ Add Link</button>
+    </div>
+
+    <div>
+      <div class="sec"><span class="sec-lbl">Links</span><span class="sec-cnt" id="edgeCount">0</span></div>
+      <div id="edgeList"><div class="empty">No links yet</div></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="sec" style="margin-bottom:8px;"><span class="sec-lbl">Sample Graphs</span></div>
+      <div class="sample-grid">
+        <button class="sample-btn" onclick="loadSample('tutorial')">📖 Tutorial Graph (p1–p5)</button>
+        <button class="sample-btn" onclick="loadSample('web')">🌐 Web Graph (A–F)</button>
+        <button class="sample-btn" onclick="loadSample('cycle')">🔄 Cycle + Hub</button>
+        <button class="sample-btn" onclick="loadSample('star')">⭐ Star Network</button>
+        <button class="sample-btn" onclick="loadSample('dangling')">⚠️ Multiple Sink Nodes</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <button class="btn btn-red btn-full btn-sm" onclick="clearAll()">🗑 Clear All</button>
+
+  </div>
+</div>
+
+<!-- CANVAS -->
+<div class="canvas-wrap">
+  <div class="ctb">
+    <div class="tg">
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="zoomIn()">＋</button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="zoomOut()">−</button>
+      <button class="btn btn-ghost btn-sm" onclick="fitGraph()">⊡ Fit</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetLayout()">↺ Layout</button>
+      <div class="sep"></div>
+      <span style="font-size:11px;color:var(--text4);font-family:'IBM Plex Mono',monospace;">Drag nodes · Scroll to zoom · Pan background</span>
+    </div>
+    <span id="modeChip" style="font-size:11px;font-weight:700;color:var(--blue);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;">Damping d=0.85</span>
+  </div>
+  <canvas id="gc"></canvas>
+  <div class="cfooter">
+    <span>Nodes: <strong id="cfN">0</strong></span>
+    <span>Links: <strong id="cfE">0</strong></span>
+    <span id="cfSink" style="color:var(--amber);"></span>
+    <span style="margin-left:auto;" id="cfRes"></span>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="sidebar sidebar-r">
+  <div class="sb-hdr">
+    <div class="sb-title"><div class="sb-title-bar" style="background:var(--indigo)"></div>Settings &amp; Results</div>
+  </div>
+  <div class="sb-body">
+
+    <!-- Settings -->
+    <div>
+      <div class="sec" style="margin-bottom:10px;"><span class="sec-lbl">Algorithm Settings</span></div>
+      <div class="row2" style="margin-bottom:10px;">
+        <div><label class="fl">Damping (d)</label><input type="number" id="dVal" value="0.85" min="0.01" max="0.99" step="0.05"/></div>
+        <div>
+          <label class="fl">Tolerance</label>
+          <select id="tolVal">
+            <option value="0.0001">1e-4</option>
+            <option value="0.000001" selected>1e-6</option>
+            <option value="0.00000001">1e-8</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label class="fl">Mode</label>
+        <div class="tog-row">
+          <button class="tog on-blue"  id="tDamp"   onclick="setMode('damping')">With Damping</button>
+          <button class="tog"          id="tNoDamp" onclick="setMode('nodamp')">No Damping</button>
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label class="fl">Dangling Node Handling</label>
+        <div class="tog-row">
+          <button class="tog on-green" id="tDangOn"  onclick="setDangling(true)">ON (Correct)</button>
+          <button class="tog"          id="tDangOff" onclick="setDangling(false)">OFF (Leaky)</button>
+        </div>
+      </div>
+      <div><label class="fl">Max Iterations</label><input type="number" id="maxIter" value="100" min="5" max="1000"/></div>
+    </div>
+
+    <button class="btn btn-indigo btn-full" id="runBtn" onclick="runPageRank()" style="font-size:14px;padding:11px;">▶ Run PageRank</button>
+
+    <div class="divider"></div>
+
+    <!-- Results -->
+    <div id="resArea" style="display:none;">
+
+      <div id="convBox"></div>
+
+      <div class="chart-box">
+        <div class="chart-title">Convergence — Δ per Iteration</div>
+        <canvas id="cc" height="90"></canvas>
+      </div>
+
+      <div class="iter-ctrl">
+        <label>ITER</label>
+        <input type="range" id="iterSlider" min="0" max="0" value="0" oninput="showIter(+this.value)"/>
+        <span class="iter-num" id="iterNum">0</span>
+      </div>
+
+      <div>
+        <div class="sec" style="margin-bottom:8px;">
+          <span class="sec-lbl">PageRank Values</span>
+          <span class="sec-cnt" id="iterLbl">iter 0</span>
+        </div>
+        <div id="prCards"></div>
+      </div>
+
+      <div>
+        <div class="sec" style="margin-bottom:8px;"><span class="sec-lbl">Iteration Log</span></div>
+        <div class="tbl-wrap"><table class="itbl" id="iterTbl"></table></div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+</div><!-- workspace -->
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <div class="sb-dot" style="background:var(--green)" id="sbDot"></div>
+    <span id="sbTxt">Ready — build graph and run PageRank</span>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:18px;">
+    <span>N=<strong id="sbN" style="color:var(--text2)">0</strong></span>
+    <span>E=<strong id="sbE" style="color:var(--text2)">0</strong></span>
+    <span id="sbIter"></span>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+let nodes=[], edges=[];
+let mode='damping', dangOn=true;
+let allIter=[], diffs=[];
+let canvas, ctx;
+let nodePos={};
+let dragging=null, dragOx=0, dragOy=0;
+let panning=false, panSx=0, panSy=0;
+let panX=0, panY=0, zoom=1;
+let hoveredNode=null;
+
+const BASE_R=24;
+const PALETTE=['#1a56db','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#be185d','#16a34a','#9333ea','#ea580c'];
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+window.onload=()=>{
+  canvas=document.getElementById('gc');
+  ctx=canvas.getContext('2d');
+  resize(); window.addEventListener('resize',resize);
+  canvas.addEventListener('mousedown',mDown);
+  canvas.addEventListener('mousemove',mMove);
+  canvas.addEventListener('mouseup',mUp);
+  canvas.addEventListener('mouseleave',mUp);
+  canvas.addEventListener('wheel',mWheel,{passive:false});
+  requestAnimationFrame(loop);
+  loadSample('tutorial');
+  document.getElementById('nodeInput').addEventListener('keydown',e=>{if(e.key==='Enter')addNode();});
+};
+
+function resize(){
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.clientWidth;
+  canvas.height=wrap.clientHeight-38-28;
+}
+
+/* ════════════════════════════════════════
+   GRAPH BUILDER
+════════════════════════════════════════ */
+function addNode(){
+  const inp=document.getElementById('nodeInput');
+  const name=inp.value.trim();
+  if(!name) return toast('Enter a node name','err');
+  if(nodes.includes(name)) return toast(`"${name}" already exists`,'err');
+  nodes.push(name);
+  placeNode(name);
+  inp.value='';
+  refreshUI(); clearResults();
+  toast(`Node "${name}" added`,'ok');
+}
+
+function placeNode(name){
+  const n=nodes.length;
+  const cx=canvas.width/2, cy=canvas.height/2;
+  const r=Math.min(canvas.width,canvas.height)*0.32;
+  const a=((n-1)/Math.max(n,1))*2*Math.PI-Math.PI/2;
+  nodePos[name]={x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)};
+}
+
+function removeNode(name){
+  nodes=nodes.filter(x=>x!==name);
+  edges=edges.filter(([a,b])=>a!==name&&b!==name);
+  delete nodePos[name];
+  refreshUI(); clearResults();
+}
+
+function addEdge(){
+  const from=document.getElementById('eFrom').value;
+  const to=document.getElementById('eTo').value;
+  if(!from||!to) return toast('Select both nodes','err');
+  if(from===to) return toast('Self-loops not allowed','err');
+  if(edges.some(([a,b])=>a===from&&b===to)) return toast('Link already exists','err');
+  edges.push([from,to]);
+  refreshUI(); clearResults();
+  toast(`${from} → ${to}`,'ok');
+}
+
+function removeEdge(i){ edges.splice(i,1); refreshUI(); clearResults(); }
+
+function clearAll(){
+  nodes=[]; edges=[]; nodePos={};
+  clearResults(); refreshUI();
+  toast('Cleared','ok');
+}
+
+/* ════════════════════════════════════════
+   UI REFRESH
+════════════════════════════════════════ */
+function refreshUI(){
+  buildNodeList(); buildEdgeList(); buildSelects(); updateSB(); updateFooter();
+}
+
+function buildNodeList(){
+  document.getElementById('nodeCount').textContent=nodes.length;
+  const el=document.getElementById('nodeList');
+  const sinks=getSinks();
+  if(!nodes.length){el.innerHTML='<div class="empty">No nodes yet</div>';return;}
+  el.innerHTML=nodes.map(n=>{
+    const col=nodeColor(n);
+    const out=outOf(n).join(', ')||'none (dangling)';
+    const isSink=sinks.includes(n);
+    return `<div class="item-card">
+      <div>
+        <div class="item-name" style="color:${col}">${n}${isSink?'<span class="sink-tag">sink</span>':''}</div>
+        <div class="item-sub">→ ${out}</div>
+      </div>
+      <button class="btn btn-red btn-sm btn-icon" onclick="removeNode('${n}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function buildEdgeList(){
+  document.getElementById('edgeCount').textContent=edges.length;
+  const el=document.getElementById('edgeList');
+  if(!edges.length){el.innerHTML='<div class="empty">No links yet</div>';return;}
+  el.innerHTML=edges.map(([a,b],i)=>{
+    const ca=nodeColor(a), cb=nodeColor(b);
+    return `<div class="edge-card">
+      <div class="edge-label">
+        <span class="npill" style="background:${ca}18;color:${ca};border:1px solid ${ca}44">${a}</span>
+        <span style="color:var(--text4);font-size:13px;">→</span>
+        <span class="npill" style="background:${cb}18;color:${cb};border:1px solid ${cb}44">${b}</span>
+      </div>
+      <button class="btn btn-red btn-sm btn-icon" onclick="removeEdge(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function buildSelects(){
+  ['eFrom','eTo'].forEach(id=>{
+    const sel=document.getElementById(id);
+    const cur=sel.value;
+    sel.innerHTML=`<option value="">— Select —</option>`+nodes.map(n=>`<option value="${n}"${n===cur?' selected':''}>${n}</option>`).join('');
+  });
+}
+
+function updateSB(){
+  document.getElementById('sbN').textContent=nodes.length;
+  document.getElementById('sbE').textContent=edges.length;
+}
+
+function updateFooter(){
+  document.getElementById('cfN').textContent=nodes.length;
+  document.getElementById('cfE').textContent=edges.length;
+  const s=getSinks();
+  document.getElementById('cfSink').textContent=s.length?`Sinks: ${s.join(', ')}` :'';
+}
+
+/* ════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════ */
+function outOf(n){return edges.filter(([a])=>a===n).map(([,b])=>b);}
+function inTo(n) {return edges.filter(([,b])=>b===n).map(([a])=>a);}
+function getSinks(){return nodes.filter(n=>outOf(n).length===0);}
+function nodeColor(n){return PALETTE[nodes.indexOf(n)%PALETTE.length];}
+function getR(PR,n){
+  if(!PR||PR[n]==null) return BASE_R;
+  return BASE_R + PR[n]*55;
+}
+
+/* ════════════════════════════════════════
+   PAGERANK
+════════════════════════════════════════ */
+function runPageRank(){
+  if(nodes.length<2) return toast('Need at least 2 nodes','err');
+  const d=parseFloat(document.getElementById('dVal').value);
+  const tol=parseFloat(document.getElementById('tolVal').value);
+  const mxIt=parseInt(document.getElementById('maxIter').value);
+  const N=nodes.length;
+  const sinks=getSinks();
+  const actualD=mode==='nodamp'?1.0:d;
+
+  let PR={}; nodes.forEach(n=>PR[n]=1/N);
+  allIter=[{...PR}]; diffs=[];
+  let converged=false, it=0;
+
+  for(it=1;it<=mxIt;it++){
+    let sinkSum=0;
+    if(dangOn) sinks.forEach(n=>sinkSum+=PR[n]);
+    const sinkBonus=actualD*sinkSum/N;
+
+    const nPR={};
+    nodes.forEach(n=>{
+      let r=mode==='nodamp'?sinkBonus:(1-actualD)/N+sinkBonus;
+      inTo(n).forEach(src=>{r+=actualD*PR[src]/outOf(src).length;});
+      nPR[n]=r;
+    });
+
+    const diff=nodes.reduce((s,n)=>s+Math.abs(nPR[n]-PR[n]),0);
+    diffs.push(diff);
+    allIter.push({...nPR});
+    PR=nPR;
+    if(diff<tol){converged=true;break;}
+  }
+
+  const slider=document.getElementById('iterSlider');
+  slider.max=allIter.length-1;
+  slider.value=allIter.length-1;
+  document.getElementById('resArea').style.display='block';
+
+  const box=document.getElementById('convBox');
+  box.className=`conv-box ${converged?'ok':'warn'}`;
+  box.innerHTML=converged
+    ?`<span style="font-size:18px;">✅</span><div><div class="conv-msg">Converged at iteration ${it}</div><div class="conv-sub">tolerance=${tol} · sum=${nodes.reduce((s,n)=>s+PR[n],0).toFixed(6)}</div></div>`
+    :`<span style="font-size:18px;">⚠️</span><div><div class="conv-msg">Stopped at iteration ${it}</div><div class="conv-sub">Increase max iterations to continue</div></div>`;
+
+  drawChart();
+  showIter(allIter.length-1);
+  buildTable();
+
+  document.getElementById('sbIter').textContent=`Iter: ${it}`;
+  document.getElementById('cfRes').textContent=converged?`✓ Converged @ iter ${it}`:`✗ No convergence`;
+  document.getElementById('sbTxt').textContent=converged?`✓ Converged at iteration ${it} · d=${mode==='nodamp'?'N/A':d} · tol=${tol}`:`⚠ Did not converge in ${it} iterations`;
+  document.getElementById('sbDot').style.background=converged?'var(--green)':'var(--amber)';
+  document.getElementById('chipStatus').textContent=converged?'CONVERGED':'MAX ITER';
+  document.getElementById('chipStatus').className=`chip ${converged?'chip-green':'chip-amber'}`;
+  toast(converged?`Converged at iteration ${it}`:`Stopped at ${it}`,converged?'ok':'err');
+}
+
+function showIter(idx){
+  idx=+idx;
+  document.getElementById('iterNum').textContent=idx;
+  document.getElementById('iterLbl').textContent=`iter ${idx}`;
+  const PR=allIter[idx]; if(!PR) return;
+
+  const sorted=[...nodes].sort((a,b)=>PR[b]-PR[a]);
+  const maxV=Math.max(...nodes.map(n=>PR[n]));
+
+  document.getElementById('prCards').innerHTML=sorted.map((n,rank)=>{
+    const col=nodeColor(n);
+    const pct=maxV>0?(PR[n]/maxV*100):0;
+    const isSink=getSinks().includes(n);
+    return `<div class="pr-row">
+      <div class="pr-top">
+        <span class="pr-node" style="color:${col}">${n}${isSink?'<span class="sink-tag">sink</span>':''}</span>
+        <span class="pr-val">${PR[n].toFixed(6)}</span>
+      </div>
+      <div class="pr-track"><div class="pr-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="pr-meta">#${rank+1} of ${nodes.length}</div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('#iterTbl tr[data-i]').forEach(r=>{
+    r.classList.toggle('hl',+r.dataset.i===idx);
+  });
+}
+
+function drawChart(){
+  const c=document.getElementById('cc');
+  c.width=c.parentElement.clientWidth-22; c.height=90;
+  const W=c.width,H=c.height,ct=c.getContext('2d');
+  ct.clearRect(0,0,W,H);
+  if(!diffs.length) return;
+
+  const pL=6,pR=6,pT=6,pB=16;
+  const iW=W-pL-pR, iH=H-pT-pB;
+  const maxD=Math.max(...diffs);
+
+  // grid
+  ct.strokeStyle='#e5e7eb'; ct.lineWidth=1;
+  [0,.5,1].forEach(t=>{
+    const y=pT+iH*(1-t);
+    ct.beginPath();ct.moveTo(pL,y);ct.lineTo(pL+iW,y);ct.stroke();
+  });
+
+  const pts=diffs.map((v,i)=>({
+    x:pL+(i/(diffs.length-1||1))*iW,
+    y:pT+iH*(1-(maxD>0?v/maxD:0))
+  }));
+
+  // fill
+  const grad=ct.createLinearGradient(0,pT,0,pT+iH);
+  grad.addColorStop(0,'rgba(26,86,219,0.15)');
+  grad.addColorStop(1,'rgba(26,86,219,0)');
+  ct.beginPath();
+  ct.moveTo(pts[0].x,pT+iH);
+  pts.forEach(p=>ct.lineTo(p.x,p.y));
+  ct.lineTo(pts[pts.length-1].x,pT+iH);
+  ct.closePath(); ct.fillStyle=grad; ct.fill();
+
+  // line
+  ct.beginPath(); ct.strokeStyle='#1a56db'; ct.lineWidth=2;
+  pts.forEach((p,i)=>i?ct.lineTo(p.x,p.y):ct.moveTo(p.x,p.y));
+  ct.stroke();
+
+  // end dots
+  [0,pts.length-1].forEach(i=>{
+    ct.beginPath(); ct.arc(pts[i].x,pts[i].y,3,0,Math.PI*2);
+    ct.fillStyle='#1a56db'; ct.fill();
+  });
+
+  // axis
+  ct.fillStyle='#9ca3af'; ct.font='9px IBM Plex Mono'; ct.textAlign='center';
+  ct.fillText('0',pL,H-3); ct.fillText(diffs.length,pL+iW,H-3);
+  ct.textAlign='right'; ct.fillText(maxD.toFixed(3),pL-1,pT+6);
+}
+
+function buildTable(){
+  const tbl=document.getElementById('iterTbl');
+  let h=`<tr><th>Iter</th>${nodes.map(n=>`<th style="color:${nodeColor(n)}">${n}</th>`).join('')}<th>Δ diff</th></tr>`;
+  allIter.forEach((PR,i)=>{
+    const diff=i>0?diffs[i-1]:null;
+    h+=`<tr data-i="${i}"><td>${i}</td>${nodes.map(n=>`<td>${PR[n]?.toFixed(4)??'—'}</td>`).join('')}<td>${diff!=null?diff.toFixed(5):'—'}</td></tr>`;
+  });
+  tbl.innerHTML=h;
+  tbl.querySelectorAll('tr[data-i]').forEach(row=>{
+    row.addEventListener('click',()=>{
+      const idx=+row.dataset.i;
+      document.getElementById('iterSlider').value=idx;
+      showIter(idx);
+    });
+  });
+}
+
+function clearResults(){
+  allIter=[]; diffs=[];
+  document.getElementById('resArea').style.display='none';
+  document.getElementById('cfRes').textContent='';
+  document.getElementById('sbIter').textContent='';
+  document.getElementById('chipStatus').textContent='READY';
+  document.getElementById('chipStatus').className='chip chip-amber';
+  document.getElementById('sbTxt').textContent='Ready — build graph and run PageRank';
+  document.getElementById('sbDot').style.background='var(--green)';
+}
+
+/* ════════════════════════════════════════
+   SETTINGS
+════════════════════════════════════════ */
+function setMode(m){
+  mode=m;
+  document.getElementById('tDamp').className  =`tog${m==='damping'?' on-blue':''}`;
+  document.getElementById('tNoDamp').className=`tog${m==='nodamp'?' on-amber':''}`;
+  document.getElementById('dVal').disabled=(m==='nodamp');
+  document.getElementById('chipMode').textContent=m==='damping'?'WITH DAMPING':'NO DAMPING';
+  document.getElementById('chipMode').className=m==='damping'?'chip chip-blue':'chip chip-amber';
+  const d=document.getElementById('dVal').value;
+  document.getElementById('modeChip').textContent=m==='damping'?`Damping d=${d}`:'No Damping (d=1)';
+  clearResults();
+}
+
+function setDangling(on){
+  dangOn=on;
+  document.getElementById('tDangOn').className =`tog${on?' on-green':''}`;
+  document.getElementById('tDangOff').className=`tog${!on?' on-amber':''}`;
+  document.getElementById('chipDang').textContent=`DANGLING: ${on?'ON':'OFF'}`;
+  document.getElementById('chipDang').className=`chip ${on?'chip-green':'chip-amber'}`;
+  clearResults();
+}
+
+/* ════════════════════════════════════════
+   SAMPLE GRAPHS
+════════════════════════════════════════ */
+const SAMPLES={
+  tutorial:{nodes:['p1','p2','p3','p4','p5'],edges:[['p1','p2'],['p1','p5'],['p1','p4'],['p3','p1'],['p3','p4'],['p4','p3'],['p5','p1'],['p5','p3']]},
+  web:     {nodes:['A','B','C','D','E','F'],edges:[['A','B'],['A','C'],['B','D'],['C','B'],['C','D'],['D','A'],['E','A'],['F','B'],['F','E']]},
+  cycle:   {nodes:['Hub','C1','C2','C3','Leaf'],edges:[['Hub','C1'],['Hub','C2'],['Hub','C3'],['C1','C2'],['C2','C3'],['C3','C1'],['C1','Hub'],['Leaf','Hub']]},
+  star:    {nodes:['Center','S1','S2','S3','S4','S5'],edges:[['S1','Center'],['S2','Center'],['S3','Center'],['S4','Center'],['S5','Center'],['Center','S1'],['Center','S2']]},
+  dangling:{nodes:['Alpha','Beta','Gamma','Delta','Sink1','Sink2'],edges:[['Alpha','Beta'],['Alpha','Gamma'],['Beta','Delta'],['Gamma','Beta'],['Delta','Alpha'],['Alpha','Sink1'],['Beta','Sink2']]}
+};
+
+function loadSample(key){
+  const s=SAMPLES[key];
+  nodes=[...s.nodes]; edges=s.edges.map(e=>[...e]); nodePos={};
+  clearResults(); layoutCircle(); refreshUI();
+  toast(`Loaded: ${key}`,'ok');
+}
+
+function layoutCircle(){
+  const cx=canvas.width/2, cy=canvas.height/2;
+  const r=Math.min(canvas.width,canvas.height)*0.32;
+  nodes.forEach((n,i)=>{
+    const a=(i/nodes.length)*2*Math.PI-Math.PI/2;
+    nodePos[n]={x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)};
+  });
+  panX=0; panY=0; zoom=1;
+}
+
+/* ════════════════════════════════════════
+   CANVAS RENDER
+════════════════════════════════════════ */
+function loop(){ draw(); requestAnimationFrame(loop); }
+
+function draw(){
+  const W=canvas.width, H=canvas.height;
+
+  // Background
+  ctx.fillStyle='#f4f6f9'; ctx.fillRect(0,0,W,H);
+
+  // Dot grid
+  const gs=Math.round(30*zoom);
+  const ox=((panX%gs)+gs)%gs, oy=((panY%gs)+gs)%gs;
+  ctx.fillStyle='#d1d9e6';
+  for(let x=ox;x<W;x+=gs) for(let y=oy;y<H;y+=gs){
+    ctx.beginPath(); ctx.arc(x,y,.9,0,Math.PI*2); ctx.fill();
+  }
+
+  if(!nodes.length){
+    ctx.fillStyle='#9ca3af'; ctx.font='14px IBM Plex Sans';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Add nodes and links to build your graph',W/2,H/2);
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(panX,panY);
+  ctx.scale(zoom,zoom);
+
+  const PR=allIter.length?allIter[+document.getElementById('iterSlider').value||0]:null;
+
+  // ── EDGES (drawn before nodes so nodes appear on top) ──
+  edges.forEach(([from,to])=>{
+    const a=nodePos[from], b=nodePos[to];
+    if(!a||!b) return;
+    drawEdge(a,b,from,to,getR(PR,from),getR(PR,to),PR);
+  });
+
+  // ── NODES ──
+  nodes.forEach(n=>{
+    const p=nodePos[n]; if(!p) return;
+    const col=nodeColor(n);
+    const r=getR(PR,n);
+    const isSink=getSinks().includes(n);
+    const isHov=(hoveredNode===n);
+
+    // Drop shadow
+    ctx.shadowColor='rgba(0,0,0,0.13)';
+    ctx.shadowBlur=isHov?18:8;
+    ctx.shadowOffsetY=2;
+
+    // White fill
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.fillStyle='#ffffff'; ctx.fill();
+    ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+
+    // Subtle color wash
+    const grd=ctx.createRadialGradient(p.x,p.y-r*.2,r*.05,p.x,p.y,r);
+    grd.addColorStop(0,col+'28'); grd.addColorStop(1,col+'08');
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.fillStyle=grd; ctx.fill();
+
+    // Stroke
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.strokeStyle=isSink?'#d97706':col;
+    ctx.lineWidth=isSink?2.5:2.2;
+    if(isSink) ctx.setLineDash([5,3]); else ctx.setLineDash([]);
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Node label
+    const fs=Math.max(11,Math.min(15,r*.52));
+    ctx.fillStyle=col;
+    ctx.font=`700 ${fs}px IBM Plex Mono`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(n,p.x,p.y);
+
+    // PR value below node
+    if(PR&&PR[n]!=null){
+      ctx.fillStyle='#6b7280'; ctx.font='10px IBM Plex Mono';
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      ctx.fillText(PR[n].toFixed(4),p.x,p.y+r+5);
+    }
+
+    // Sink indicator dot
+    if(isSink){
+      ctx.beginPath(); ctx.arc(p.x+r*.68,p.y-r*.68,5.5,0,Math.PI*2);
+      ctx.fillStyle='#d97706'; ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='bold 7px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('S',p.x+r*.68,p.y-r*.68);
+    }
+  });
+
+  ctx.restore();
+}
+
+/* ────────────────────────────────────────
+   CORRECT DIRECTED EDGE DRAWING
+   Arrow tip lands exactly on the target
+   node's circumference boundary.
+──────────────────────────────────────── */
+function drawEdge(a, b, fromN, toN, rA, rB, PR){
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist<2) return;
+
+  const ux=dx/dist, uy=dy/dist;   // unit vector from a→b
+  const col=nodeColor(fromN);
+
+  // If a reverse edge exists, offset both edges sideways so both are visible
+  const hasReverse=edges.some(([f,t])=>f===toN&&t===fromN);
+  const offset=hasReverse?7:0;
+  const px=-uy*offset, py=ux*offset;  // perpendicular offset
+
+  // Start point: ON the boundary of source node
+  const sx=a.x+ux*rA+px;
+  const sy=a.y+uy*rA+py;
+
+  // Arrow tip: ON the boundary of target node (this is the key fix)
+  const tipX=b.x-ux*rB+px;
+  const tipY=b.y-uy*rB+py;
+
+  // Line end: slightly before tip to not overlap arrowhead
+  const arrowLen=11;
+  const lineEndX=tipX-ux*arrowLen;
+  const lineEndY=tipY-uy*arrowLen;
+
+  // ── Draw line ──
+  ctx.beginPath();
+  ctx.moveTo(sx,sy);
+  ctx.lineTo(lineEndX,lineEndY);
+  ctx.strokeStyle=col+'aa';
+  ctx.lineWidth=1.8;
+  ctx.setLineDash([]);
+  ctx.stroke();
+
+  // ── Draw arrowhead (solid triangle, tip touches node boundary) ──
+  const angle=Math.atan2(tipY-sy, tipX-sx);
+  const spread=0.40; // ~23° half-angle
+
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(tipX-arrowLen*Math.cos(angle-spread), tipY-arrowLen*Math.sin(angle-spread));
+  ctx.lineTo(tipX-arrowLen*Math.cos(angle+spread), tipY-arrowLen*Math.sin(angle+spread));
+  ctx.closePath();
+  ctx.fillStyle=col+'cc';
+  ctx.fill();
+}
+
+/* ════════════════════════════════════════
+   MOUSE INTERACTION
+════════════════════════════════════════ */
+function worldXY(e){
+  const r=canvas.getBoundingClientRect();
+  return{x:(e.clientX-r.left-panX)/zoom, y:(e.clientY-r.top-panY)/zoom};
+}
+
+function mDown(e){
+  const {x,y}=worldXY(e);
+  const PR=allIter.length?allIter[+document.getElementById('iterSlider').value||0]:null;
+  for(const n of nodes){
+    const p=nodePos[n]; if(!p) continue;
+    if(Math.hypot(x-p.x,y-p.y)<getR(PR,n)+4){dragging=n;dragOx=x-p.x;dragOy=y-p.y;return;}
+  }
+  panning=true; panSx=e.clientX-panX; panSy=e.clientY-panY;
+}
+
+function mMove(e){
+  if(dragging){
+    const {x,y}=worldXY(e);
+    nodePos[dragging].x=x-dragOx; nodePos[dragging].y=y-dragOy;
+  } else if(panning){
+    panX=e.clientX-panSx; panY=e.clientY-panSy;
+  } else {
+    const {x,y}=worldXY(e);
+    const PR=allIter.length?allIter[+document.getElementById('iterSlider').value||0]:null;
+    hoveredNode=null;
+    for(const n of nodes){
+      const p=nodePos[n]; if(!p) continue;
+      if(Math.hypot(x-p.x,y-p.y)<getR(PR,n)+4){hoveredNode=n;break;}
+    }
+    canvas.style.cursor=hoveredNode?'pointer':panning?'grabbing':'grab';
+  }
+}
+
+function mUp(){ dragging=null; panning=false; canvas.style.cursor='grab'; }
+
+function mWheel(e){
+  e.preventDefault();
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const fac=e.deltaY<0?1.12:0.89;
+  const nz=Math.min(4,Math.max(0.15,zoom*fac));
+  panX=mx-(mx-panX)*(nz/zoom);
+  panY=my-(my-panY)*(nz/zoom);
+  zoom=nz;
+}
+
+/* ════════════════════════════════════════
+   CAMERA
+════════════════════════════════════════ */
+function zoomIn(){zoom=Math.min(4,zoom*1.2);}
+function zoomOut(){zoom=Math.max(0.15,zoom/1.2);}
+
+function fitGraph(){
+  if(!nodes.length) return;
+  const xs=nodes.map(n=>nodePos[n]?.x||0), ys=nodes.map(n=>nodePos[n]?.y||0);
+  const minX=Math.min(...xs), maxX=Math.max(...xs);
+  const minY=Math.min(...ys), maxY=Math.max(...ys);
+  const pad=90, W=canvas.width, H=canvas.height;
+  zoom=Math.min((W-pad*2)/Math.max(maxX-minX,1),(H-pad*2)/Math.max(maxY-minY,1),3);
+  panX=W/2-((minX+maxX)/2)*zoom;
+  panY=H/2-((minY+maxY)/2)*zoom;
+}
+
+function resetLayout(){layoutCircle(); setTimeout(fitGraph,50);}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`show ${type}`;
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',2400);
+}
+</script>
+</body>
+</html>

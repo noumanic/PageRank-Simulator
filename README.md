@@ -30,6 +30,8 @@ Converges when the total absolute difference between iterations falls below the 
 
 No installation or dependencies. Open `pagerank_simulator.html` directly in any modern browser.
 
+page_rank_damping.py is the CLI based implimentation of this algorithm in the CLI based.
+
 ## Parameters
 
 | Parameter         | Default | Description                                       |
@@ -38,3 +40,5 @@ No installation or dependencies. Open `pagerank_simulator.html` directly in any 
 | Tolerance         | 1e-6    | Convergence threshold (sum of absolute Δ)        |
 | Max Iterations    | 100     | Hard stop if convergence not reached              |
 | Dangling Handling | ON      | Redistributes rank from sink nodes each iteration |
+
+More updates to come!
